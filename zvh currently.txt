@@ -1,0 +1,1133 @@
+-- Modern Shop Style UI Script with ESP Features
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ShopUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ESP Variables
+local ESPEnabled = false
+local TeamESPEnabled = false
+local ShowNames = false
+local ShowHealth = false
+local ShowType = false
+local HitboxEnabled = false -- Hitbox expander toggle
+local HitboxSize = 1 -- Default hitbox multiplier
+local HitboxTransparency = 0.7 -- Default transparency
+local HitboxAxisX = true -- Expand on X axis
+local HitboxAxisY = true -- Expand on Y axis
+local HitboxAxisZ = true -- Expand on Z axis
+local ESPConnections = {}
+local ESPHighlights = {}
+local HitboxParts = {}
+
+-- Item type mappings
+local ItemTypes = {
+    ["Bomb"] = "Bomber",
+    ["GladiatorsSword"] = "Gladiator",
+    ["GravediggersPickaxe"] = "Gravedigger",
+    ["Dynamite"] = "Rusher",
+    ["Cannon"] = "Cannoneer",
+    ["HuntersBow"] = "Hunter"
+}
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 650, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -325, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BackgroundTransparency = 0.3
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.Parent = ScreenGui
+
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 70)
+TopBar.Position = UDim2.new(0, 0, 0, 0)
+TopBar.BackgroundTransparency = 1
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+-- Title Label
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(0, 200, 1, 0)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "g22"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 32
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TopBar
+
+local TitlePadding = Instance.new("UIPadding")
+TitlePadding.PaddingLeft = UDim.new(0, 16)
+TitlePadding.Parent = TitleLabel
+
+-- Search Box
+local SearchBox = Instance.new("TextBox")
+SearchBox.Name = "SearchBox"
+SearchBox.Size = UDim2.new(1, -380, 0, 38)
+SearchBox.Position = UDim2.new(0, 140, 0.5, -19)
+SearchBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.BorderSizePixel = 2
+SearchBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
+SearchBox.Text = ""
+SearchBox.PlaceholderText = "Search"
+SearchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+SearchBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.TextSize = 16
+SearchBox.TextXAlignment = Enum.TextXAlignment.Left
+SearchBox.Parent = TopBar
+
+local SearchPadding = Instance.new("UIPadding")
+SearchPadding.PaddingLeft = UDim.new(0, 12)
+SearchPadding.Parent = SearchBox
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 38, 0, 38)
+CloseButton.Position = UDim2.new(1, -54, 0.5, -19)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.BackgroundTransparency = 0
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 20
+CloseButton.Parent = TopBar
+
+-- Sidebar Container
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 140, 1, -90)
+Sidebar.Position = UDim2.new(0, 15, 0, 80)
+Sidebar.BackgroundTransparency = 1
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Padding = UDim.new(0, 10)
+ListLayout.Parent = Sidebar
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, -175, 1, -90)
+ContentFrame.Position = UDim2.new(0, 165, 0, 80)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ContentFrame.BackgroundTransparency = 0.3
+ContentFrame.BorderSizePixel = 2
+ContentFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ContentFrame.Parent = MainFrame
+
+-- Content Title
+local ContentTitle = Instance.new("TextLabel")
+ContentTitle.Name = "ContentTitle"
+ContentTitle.Size = UDim2.new(1, -20, 0, 50)
+ContentTitle.Position = UDim2.new(0, 15, 0, 15)
+ContentTitle.BackgroundTransparency = 1
+ContentTitle.Text = "Select a category"
+ContentTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ContentTitle.Font = Enum.Font.GothamBold
+ContentTitle.TextSize = 24
+ContentTitle.TextXAlignment = Enum.TextXAlignment.Left
+ContentTitle.TextYAlignment = Enum.TextYAlignment.Top
+ContentTitle.Parent = ContentFrame
+
+-- Content Container
+local ContentContainer = Instance.new("ScrollingFrame")
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Size = UDim2.new(1, -30, 1, -80)
+ContentContainer.Position = UDim2.new(0, 15, 0, 70)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.BorderSizePixel = 0
+ContentContainer.ScrollBarThickness = 6
+ContentContainer.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+ContentContainer.Visible = false
+ContentContainer.Parent = ContentFrame
+
+-- ESP Functions
+local function getPlayerTeam(player)
+    return player.Team
+end
+
+local function isMonsterTeam(player)
+    if player.Team then
+        local teamName = player.Team.Name:lower()
+        return teamName:find("monster") or teamName:find("zombie") or teamName:find("infected")
+    end
+    return false
+end
+
+local function getPlayerType(player)
+    if not player.Character then return "Unknown" end
+    
+    for itemName, typeName in pairs(ItemTypes) do
+        if player.Character:FindFirstChild(itemName) then
+            return typeName
+        end
+    end
+    
+    return "Unknown"
+end
+
+local function removeESP(player)
+    -- Remove highlight
+    if ESPHighlights[player] then
+        ESPHighlights[player]:Destroy()
+        ESPHighlights[player] = nil
+    end
+    
+    -- Remove hitbox
+    if HitboxParts[player] then
+        HitboxParts[player]:Destroy()
+        HitboxParts[player] = nil
+    end
+    
+    -- Remove overhead elements
+    if player.Character then
+        if player.Character:FindFirstChild("Head") then
+            local nameTag = player.Character.Head:FindFirstChild("ESPNameTag")
+            if nameTag then nameTag:Destroy() end
+        end
+        
+        if player.Character:FindFirstChild("HumanoidRootPart") then
+            local typeTag = player.Character.HumanoidRootPart:FindFirstChild("ESPTypeTag")
+            if typeTag then typeTag:Destroy() end
+            
+            local healthBar = player.Character.HumanoidRootPart:FindFirstChild("ESPHealthBar")
+            if healthBar then healthBar:Destroy() end
+        end
+    end
+    
+    -- Disconnect health connections
+    if ESPConnections["Health_" .. player.Name] then
+        for _, conn in pairs(ESPConnections["Health_" .. player.Name]) do
+            if typeof(conn) == "RBXScriptConnection" then
+                conn:Disconnect()
+            end
+        end
+        ESPConnections["Health_" .. player.Name] = nil
+    end
+end
+
+local function createOverhead(player)
+    if not player.Character or not player.Character:FindFirstChild("Head") then return end
+    if not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    -- Check team ESP
+    if TeamESPEnabled then
+        local localTeam = getPlayerTeam(LocalPlayer)
+        local playerTeam = getPlayerTeam(player)
+        if localTeam and playerTeam and localTeam == playerTeam then
+            return
+        end
+    end
+    
+    -- Name
+    if ShowNames then
+        local NameGui = Instance.new("BillboardGui")
+        NameGui.Name = "ESPNameTag"
+        NameGui.Adornee = player.Character.Head
+        NameGui.Size = UDim2.new(0, 200, 0, 50)
+        NameGui.StudsOffset = Vector3.new(0, 2.5, 0)
+        NameGui.AlwaysOnTop = true
+        NameGui.Parent = player.Character.Head
+        
+        local NameLabel = Instance.new("TextLabel")
+        NameLabel.Size = UDim2.new(1, 0, 1, 0)
+        NameLabel.BackgroundTransparency = 1
+        NameLabel.Text = player.Name
+        NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        NameLabel.TextStrokeTransparency = 0
+        NameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        NameLabel.Font = Enum.Font.Arial
+        NameLabel.TextSize = 18
+        NameLabel.Parent = NameGui
+    end
+    
+    -- Type (only for monsters)
+    if ShowType and isMonsterTeam(player) then
+        local TypeGui = Instance.new("BillboardGui")
+        TypeGui.Name = "ESPTypeTag"
+        TypeGui.Adornee = player.Character.HumanoidRootPart
+        TypeGui.Size = UDim2.new(0, 200, 0, 40)
+        TypeGui.StudsOffset = Vector3.new(0, -0.5, 0)
+        TypeGui.AlwaysOnTop = true
+        TypeGui.Parent = player.Character.HumanoidRootPart
+        
+        local TypeLabel = Instance.new("TextLabel")
+        TypeLabel.Name = "TypeLabel"
+        TypeLabel.Size = UDim2.new(1, 0, 1, 0)
+        TypeLabel.BackgroundTransparency = 1
+        TypeLabel.Text = getPlayerType(player)
+        TypeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TypeLabel.TextStrokeTransparency = 0
+        TypeLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        TypeLabel.Font = Enum.Font.Arial
+        TypeLabel.TextSize = 16
+        TypeLabel.Parent = TypeGui
+        
+        -- Update type
+        task.spawn(function()
+            while TypeLabel and TypeLabel.Parent and isMonsterTeam(player) and ShowType do
+                TypeLabel.Text = getPlayerType(player)
+                task.wait(1)
+            end
+        end)
+    end
+    
+    -- Health bar
+    if ShowHealth and player.Character:FindFirstChild("Humanoid") then
+        local humanoid = player.Character.Humanoid
+        
+        local HealthGui = Instance.new("BillboardGui")
+        HealthGui.Name = "ESPHealthBar"
+        HealthGui.Adornee = player.Character.HumanoidRootPart
+        HealthGui.Size = UDim2.new(0, 60, 0, 12)
+        HealthGui.StudsOffset = Vector3.new(2.5, 0, 0)
+        HealthGui.AlwaysOnTop = true
+        HealthGui.Parent = player.Character.HumanoidRootPart
+        
+        -- Outer border (thin white outline)
+        local HealthBorder = Instance.new("Frame")
+        HealthBorder.Size = UDim2.new(1, 0, 1, 0)
+        HealthBorder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        HealthBorder.BorderSizePixel = 0
+        HealthBorder.Parent = HealthGui
+        
+        -- Inner black background
+        local HealthBG = Instance.new("Frame")
+        HealthBG.Size = UDim2.new(1, -2, 1, -2)
+        HealthBG.Position = UDim2.new(0, 1, 0, 1)
+        HealthBG.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        HealthBG.BorderSizePixel = 0
+        HealthBG.Parent = HealthBorder
+        
+        -- Health bar fill
+        local HealthBar = Instance.new("Frame")
+        HealthBar.Name = "HealthBar"
+        HealthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, -2, 1, -2)
+        HealthBar.Position = UDim2.new(0, 1, 0, 1)
+        HealthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        HealthBar.BorderSizePixel = 0
+        HealthBar.Parent = HealthBG
+        
+        -- Percentage text
+        local HealthText = Instance.new("TextLabel")
+        HealthText.Size = UDim2.new(1, 0, 1, 0)
+        HealthText.BackgroundTransparency = 1
+        HealthText.Text = math.floor((humanoid.Health / humanoid.MaxHealth) * 100) .. "%"
+        HealthText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        HealthText.TextStrokeTransparency = 0
+        HealthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        HealthText.Font = Enum.Font.Arial
+        HealthText.TextSize = 10
+        HealthText.Parent = HealthBorder
+        
+        -- Health update
+        ESPConnections["Health_" .. player.Name] = ESPConnections["Health_" .. player.Name] or {}
+        local conn = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            if HealthBar and humanoid and HealthText then
+                local percent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+                HealthBar.Size = UDim2.new(percent, -2, 1, -2)
+                HealthText.Text = math.floor(percent * 100) .. "%"
+                
+                if percent > 0.5 then
+                    HealthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                elseif percent > 0.25 then
+                    HealthBar.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+                else
+                    HealthBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                end
+            end
+        end)
+        table.insert(ESPConnections["Health_" .. player.Name], conn)
+    end
+end
+
+local function createESP(player)
+    if player == LocalPlayer then return end
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    removeESP(player)
+    
+    -- Check team ESP for highlight
+    if TeamESPEnabled then
+        local localTeam = getPlayerTeam(LocalPlayer)
+        local playerTeam = getPlayerTeam(player)
+        if localTeam and playerTeam and localTeam == playerTeam then
+            return
+        end
+    end
+    
+    -- Create visible hitbox part (only if hitbox is enabled)
+    if HitboxEnabled then
+        local hrp = player.Character.HumanoidRootPart
+        local hitbox = Instance.new("Part")
+        hitbox.Name = "ExpandedHitbox"
+        
+        -- Calculate size based on enabled axes
+        local sizeX = HitboxAxisX and (hrp.Size.X * HitboxSize) or hrp.Size.X
+        local sizeY = HitboxAxisY and (hrp.Size.Y * HitboxSize) or hrp.Size.Y
+        local sizeZ = HitboxAxisZ and (hrp.Size.Z * HitboxSize) or hrp.Size.Z
+        
+        hitbox.Size = Vector3.new(sizeX, sizeY, sizeZ)
+        hitbox.CFrame = hrp.CFrame
+        hitbox.Transparency = HitboxTransparency
+        hitbox.Color = Color3.fromRGB(255, 100, 100)
+        hitbox.Material = Enum.Material.Neon
+        hitbox.CanCollide = false
+        hitbox.Anchored = false
+        hitbox.Massless = true
+        hitbox.Shape = Enum.PartType.Block -- Force square/cube shape
+        hitbox.TopSurface = Enum.SurfaceType.Smooth
+        hitbox.BottomSurface = Enum.SurfaceType.Smooth
+        hitbox.Parent = player.Character
+        
+        -- Make hitbox actually hittable by replacing HumanoidRootPart
+        hrp.Transparency = 1
+        hrp.CanCollide = false
+        
+        -- Weld to character for perfect alignment
+        local weld = Instance.new("Weld")
+        weld.Part0 = hrp
+        weld.Part1 = hitbox
+        weld.C0 = CFrame.new(0, 0, 0)
+        weld.Parent = hitbox
+        
+        -- Make the hitbox the actual hit target
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "ExpandedHitbox" then
+                part.CanCollide = false
+            end
+        end
+        
+        HitboxParts[player] = hitbox
+    end
+    
+    -- Create highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.Adornee = player.Character
+    
+    if isMonsterTeam(player) then
+        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+        highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
+    else
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    end
+    
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 0
+    highlight.Parent = player.Character
+    
+    ESPHighlights[player] = highlight
+    
+    -- Create overhead
+    if ShowNames or ShowHealth or ShowType then
+        createOverhead(player)
+    end
+end
+
+local function removeAllESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        removeESP(player)
+    end
+    ESPHighlights = {}
+    HitboxParts = {}
+end
+
+local function refreshAllESP()
+    removeAllESP()
+    
+    if ESPEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                createESP(player)
+            end
+        end
+    end
+end
+
+local function toggleESP(enabled)
+    ESPEnabled = enabled
+    
+    if enabled then
+        refreshAllESP()
+        
+        -- Player added
+        ESPConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                task.wait(0.5)
+                if ESPEnabled then createESP(player) end
+            end)
+            if player.Character then createESP(player) end
+        end)
+        
+        -- Player removing
+        ESPConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
+            removeESP(player)
+        end)
+        
+        -- Character respawns
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                ESPConnections["Char_" .. player.Name] = player.CharacterAdded:Connect(function()
+                    task.wait(0.5)
+                    if ESPEnabled then createESP(player) end
+                end)
+            end
+        end
+        
+        -- Team changes
+        for _, player in pairs(Players:GetPlayers()) do
+            ESPConnections["Team_" .. player.Name] = player:GetPropertyChangedSignal("Team"):Connect(function()
+                if ESPEnabled then
+                    task.wait(0.1)
+                    createESP(player)
+                end
+            end)
+        end
+    else
+        removeAllESP()
+        
+        for name, conn in pairs(ESPConnections) do
+            if typeof(conn) == "RBXScriptConnection" then
+                conn:Disconnect()
+            elseif typeof(conn) == "table" then
+                for _, c in pairs(conn) do
+                    if typeof(c) == "RBXScriptConnection" then
+                        c:Disconnect()
+                    end
+                end
+            end
+        end
+        ESPConnections = {}
+    end
+end
+
+local function toggleTeamESP(enabled)
+    TeamESPEnabled = enabled
+    refreshAllESP()
+end
+
+local function toggleNames(enabled)
+    ShowNames = enabled
+    refreshAllESP()
+end
+
+local function toggleHealth(enabled)
+    ShowHealth = enabled
+    refreshAllESP()
+end
+
+local function toggleType(enabled)
+    ShowType = enabled
+    refreshAllESP()
+end
+
+local function updateHitboxSize(size)
+    HitboxSize = size
+    -- Update all existing hitboxes
+    for player, hitbox in pairs(HitboxParts) do
+        if hitbox and hitbox.Parent and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local sizeX = HitboxAxisX and (hrp.Size.X * size) or hrp.Size.X
+            local sizeY = HitboxAxisY and (hrp.Size.Y * size) or hrp.Size.Y
+            local sizeZ = HitboxAxisZ and (hrp.Size.Z * size) or hrp.Size.Z
+            hitbox.Size = Vector3.new(sizeX, sizeY, sizeZ)
+        end
+    end
+end
+
+local function updateHitboxTransparency(transparency)
+    HitboxTransparency = transparency
+    -- Update all existing hitboxes
+    for player, hitbox in pairs(HitboxParts) do
+        if hitbox and hitbox.Parent then
+            hitbox.Transparency = transparency
+        end
+    end
+end
+
+local function updateHitboxAxis()
+    -- Refresh all hitboxes with new axis settings
+    for player, hitbox in pairs(HitboxParts) do
+        if hitbox and hitbox.Parent and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local sizeX = HitboxAxisX and (hrp.Size.X * HitboxSize) or hrp.Size.X
+            local sizeY = HitboxAxisY and (hrp.Size.Y * HitboxSize) or hrp.Size.Y
+            local sizeZ = HitboxAxisZ and (hrp.Size.Z * HitboxSize) or hrp.Size.Z
+            hitbox.Size = Vector3.new(sizeX, sizeY, sizeZ)
+        end
+    end
+end
+
+local function toggleHitbox(enabled)
+    HitboxEnabled = enabled
+    if enabled then
+        -- Create hitboxes for all players
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                createESP(player)
+            end
+        end
+    else
+        -- Remove all hitboxes
+        for player, hitbox in pairs(HitboxParts) do
+            if hitbox then
+                hitbox:Destroy()
+            end
+        end
+        HitboxParts = {}
+    end
+end
+
+-- Axis toggle button creator
+local function createAxisButton(name, text, position, axis, callback)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Size = UDim2.new(0, 60, 0, 30)
+    Button.Position = position
+    Button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+    Button.BorderSizePixel = 2
+    Button.BorderColor3 = Color3.fromRGB(100, 100, 100)
+    Button.Text = text
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.Font = Enum.Font.GothamBold
+    Button.TextSize = 16
+    Button.AutoButtonColor = false
+    Button.Parent = ContentContainer
+    
+    local enabled = true -- Start enabled
+    
+    Button.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        
+        if enabled then
+            Button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+        else
+            Button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        end
+        
+        callback(enabled)
+        
+        -- Update both previews
+        local sizePreview = ContentContainer:FindFirstChild("HitboxSliderBG")
+        if sizePreview then
+            local sizePreviewFrame = sizePreview.Parent:FindFirstChild("Preview")
+            if sizePreviewFrame then
+                local hitboxPreview = sizePreviewFrame:FindFirstChild("HitboxPreview")
+                if hitboxPreview then
+                    local previewSizeX = HitboxAxisX and (30 * HitboxSize) or 30
+                    local previewSizeY = HitboxAxisY and (50 * HitboxSize) or 50
+                    hitboxPreview.Size = UDim2.new(0, previewSizeX, 0, previewSizeY)
+                end
+            end
+        end
+        
+        local transPreview = ContentContainer:FindFirstChild("TransparencySliderBG")
+        if transPreview then
+            local transPreviewFrame = transPreview.Parent:FindFirstChild("Preview")
+            if transPreviewFrame and transPreviewFrame.Name == "Preview" and transPreviewFrame.Position.Y.Offset > 200 then
+                local transHitboxPreview = transPreviewFrame:FindFirstChild("TransparencyPreview")
+                if transHitboxPreview then
+                    local previewSizeX = HitboxAxisX and (30 * HitboxSize) or 30
+                    local previewSizeY = HitboxAxisY and (50 * HitboxSize) or 50
+                    transHitboxPreview.Size = UDim2.new(0, previewSizeX, 0, previewSizeY)
+                end
+            end
+        end
+    end)
+    
+    return Button
+end
+local function createToggleButton(name, text, position, callback)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Size = UDim2.new(0, 200, 0, 40)
+    Button.Position = position
+    Button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    Button.BorderSizePixel = 2
+    Button.BorderColor3 = Color3.fromRGB(100, 100, 100)
+    Button.Text = "DISABLED"
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.Font = Enum.Font.GothamBold
+    Button.TextSize = 18
+    Button.AutoButtonColor = false
+    Button.Parent = ContentContainer
+    
+    local enabled = false
+    
+    Button.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        
+        if enabled then
+            Button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+            Button.Text = "ENABLED"
+        else
+            Button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            Button.Text = "DISABLED"
+        end
+        
+        callback(enabled)
+    end)
+    
+    Button.MouseEnter:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), {Size = UDim2.new(0, 204, 0, 40)}):Play()
+    end)
+    
+    Button.MouseLeave:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), {Size = UDim2.new(0, 200, 0, 40)}):Play()
+    end)
+    
+    return Button
+end
+
+-- Slider creator
+local function createSlider(name, text, position, minValue, maxValue, defaultValue, callback)
+    -- Label
+    local Label = Instance.new("TextLabel")
+    Label.Name = name .. "Label"
+    Label.Size = UDim2.new(1, -10, 0, 30)
+    Label.Position = position
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 16
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.TextWrapped = true
+    Label.Parent = ContentContainer
+    
+    -- Slider background
+    local SliderBG = Instance.new("Frame")
+    SliderBG.Name = name .. "SliderBG"
+    SliderBG.Size = UDim2.new(0, 200, 0, 20)
+    SliderBG.Position = UDim2.new(0, 5, 0, position.Y.Offset + 35)
+    SliderBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    SliderBG.BorderSizePixel = 2
+    SliderBG.BorderColor3 = Color3.fromRGB(100, 100, 100)
+    SliderBG.Parent = ContentContainer
+    
+    -- Slider fill
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Name = "Fill"
+    SliderFill.Size = UDim2.new((defaultValue - minValue) / (maxValue - minValue), 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+    SliderFill.BorderSizePixel = 0
+    SliderFill.Parent = SliderBG
+    
+    -- Value label
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Name = "ValueLabel"
+    ValueLabel.Size = UDim2.new(1, 0, 1, 0)
+    ValueLabel.BackgroundTransparency = 1
+    
+    if name == "TransparencySlider" then
+        ValueLabel.Text = string.format("%.0f%%", (1 - defaultValue) * 100)
+    else
+        ValueLabel.Text = string.format("%.1fx", defaultValue)
+    end
+    
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextSize = 14
+    ValueLabel.Parent = SliderBG
+    
+    -- Hitbox preview (only for size slider)
+    local PreviewFrame, PreviewBox
+    if name == "HitboxSlider" then
+        PreviewFrame = Instance.new("Frame")
+        PreviewFrame.Name = "Preview"
+        PreviewFrame.Size = UDim2.new(0, 100, 0, 100)
+        PreviewFrame.Position = UDim2.new(0, 220, 0, position.Y.Offset + 35)
+        PreviewFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        PreviewFrame.BorderSizePixel = 2
+        PreviewFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+        PreviewFrame.Parent = ContentContainer
+        
+        PreviewBox = Instance.new("Frame")
+        PreviewBox.Name = "HitboxPreview"
+        
+        -- Calculate preview size based on axes
+        local previewSizeX = HitboxAxisX and (30 * defaultValue) or 30
+        local previewSizeY = HitboxAxisY and (50 * defaultValue) or 50
+        
+        PreviewBox.Size = UDim2.new(0, previewSizeX, 0, previewSizeY)
+        PreviewBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+        PreviewBox.AnchorPoint = Vector2.new(0.5, 0.5)
+        PreviewBox.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        PreviewBox.BackgroundTransparency = HitboxTransparency
+        PreviewBox.BorderSizePixel = 1
+        PreviewBox.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        PreviewBox.Parent = PreviewFrame
+        
+        local PreviewLabel = Instance.new("TextLabel")
+        PreviewLabel.Size = UDim2.new(1, 0, 0, 20)
+        PreviewLabel.Position = UDim2.new(0, 0, 1, 5)
+        PreviewLabel.BackgroundTransparency = 1
+        PreviewLabel.Text = "Preview"
+        PreviewLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        PreviewLabel.Font = Enum.Font.Gotham
+        PreviewLabel.TextSize = 12
+        PreviewLabel.Parent = PreviewFrame
+    elseif name == "TransparencySlider" then
+        -- Transparency preview
+        PreviewFrame = Instance.new("Frame")
+        PreviewFrame.Name = "Preview"
+        PreviewFrame.Size = UDim2.new(0, 100, 0, 100)
+        PreviewFrame.Position = UDim2.new(0, 220, 0, position.Y.Offset + 35)
+        PreviewFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        PreviewFrame.BorderSizePixel = 2
+        PreviewFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+        PreviewFrame.Parent = ContentContainer
+        
+        PreviewBox = Instance.new("Frame")
+        PreviewBox.Name = "TransparencyPreview"
+        
+        -- Calculate preview size based on axes
+        local previewSizeX = HitboxAxisX and (30 * HitboxSize) or 30
+        local previewSizeY = HitboxAxisY and (50 * HitboxSize) or 50
+        
+        PreviewBox.Size = UDim2.new(0, previewSizeX, 0, previewSizeY)
+        PreviewBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+        PreviewBox.AnchorPoint = Vector2.new(0.5, 0.5)
+        PreviewBox.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        PreviewBox.BackgroundTransparency = defaultValue
+        PreviewBox.BorderSizePixel = 1
+        PreviewBox.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        PreviewBox.Parent = PreviewFrame
+        
+        local PreviewLabel = Instance.new("TextLabel")
+        PreviewLabel.Size = UDim2.new(1, 0, 0, 20)
+        PreviewLabel.Position = UDim2.new(0, 0, 1, 5)
+        PreviewLabel.BackgroundTransparency = 1
+        PreviewLabel.Text = "Preview"
+        PreviewLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        PreviewLabel.Font = Enum.Font.Gotham
+        PreviewLabel.TextSize = 12
+        PreviewLabel.Parent = PreviewFrame
+    end
+    
+    -- Slider interaction
+    local dragging = false
+    
+    SliderBG.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    SliderBG.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousePos = input.Position.X
+            local sliderPos = SliderBG.AbsolutePosition.X
+            local sliderSize = SliderBG.AbsoluteSize.X
+            
+            local percent = math.clamp((mousePos - sliderPos) / sliderSize, 0, 1)
+            local value = minValue + (maxValue - minValue) * percent
+            
+            SliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            
+            if name == "TransparencySlider" then
+                ValueLabel.Text = string.format("%.0f%%", (1 - value) * 100)
+            else
+                ValueLabel.Text = string.format("%.1fx", value)
+            end
+            
+            -- Update preview
+            if PreviewBox then
+                if name == "HitboxSlider" then
+                    local previewSizeX = HitboxAxisX and (30 * value) or 30
+                    local previewSizeY = HitboxAxisY and (50 * value) or 50
+                    PreviewBox.Size = UDim2.new(0, previewSizeX, 0, previewSizeY)
+                elseif name == "TransparencySlider" then
+                    PreviewBox.BackgroundTransparency = value
+                    
+                    -- Also update size slider preview
+                    local sizePreview = ContentContainer:FindFirstChild("HitboxSliderBG")
+                    if sizePreview then
+                        local sizePreviewBox = sizePreview.Parent:FindFirstChild("Preview")
+                        if sizePreviewBox then
+                            local hitboxPreview = sizePreviewBox:FindFirstChild("HitboxPreview")
+                            if hitboxPreview then
+                                hitboxPreview.BackgroundTransparency = value
+                            end
+                        end
+                    end
+                end
+            end
+            
+            callback(value)
+        end
+    end)
+    
+    return SliderBG
+end
+
+-- Sidebar button creator
+local function createSidebarButton(name, layoutOrder, bgColor, borderColor, iconId, iconOffset, iconSize)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Size = UDim2.new(1, 0, 0, 50)
+    Button.LayoutOrder = layoutOrder
+    Button.BackgroundColor3 = bgColor
+    Button.BackgroundTransparency = 0
+    Button.BorderSizePixel = 3
+    Button.BorderColor3 = borderColor
+    Button.AutoButtonColor = false
+    Button.Text = ""
+    Button.Parent = Sidebar
+    
+    local Icon = Instance.new("ImageLabel")
+    Icon.Name = "Icon"
+    Icon.Size = UDim2.new(0, 24, 0, 24)
+    Icon.Position = UDim2.new(0, 12, 0.5, -12)
+    Icon.BackgroundTransparency = 1
+    Icon.Image = iconId
+    Icon.ImageRectOffset = iconOffset
+    Icon.ImageRectSize = iconSize
+    Icon.Parent = Button
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -48, 1, 0)
+    Label.Position = UDim2.new(0, 44, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(20, 20, 20)
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 16
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Button
+    
+    Button.MouseEnter:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), {Size = UDim2.new(1, 4, 0, 50)}):Play()
+    end)
+    
+    Button.MouseLeave:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), {Size = UDim2.new(1, 0, 0, 50)}):Play()
+    end)
+    
+    Button.MouseButton1Click:Connect(function()
+        ContentTitle.Text = name
+        ContentContainer.Visible = false
+        
+        if name == "Visual" then
+            ContentContainer.Visible = true
+            for _, child in pairs(ContentContainer:GetChildren()) do
+                if not child:IsA("UIListLayout") then child:Destroy() end
+            end
+            
+            local function addLabel(text, pos)
+                local lbl = Instance.new("TextLabel")
+                lbl.Size = UDim2.new(1, -10, 0, 30)
+                lbl.Position = UDim2.new(0, 5, 0, pos)
+                lbl.BackgroundTransparency = 1
+                lbl.Text = text
+                lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+                lbl.Font = Enum.Font.GothamBold
+                lbl.TextSize = 16
+                lbl.TextXAlignment = Enum.TextXAlignment.Left
+                lbl.TextWrapped = true
+                lbl.Parent = ContentContainer
+            end
+            
+            addLabel("Player ESP (Green = Monster, Red = Human)", 5)
+            createToggleButton("ESPToggle", "ESP", UDim2.new(0, 5, 0, 45), toggleESP)
+            
+            addLabel("Team ESP (Hide Teammates)", 100)
+            createToggleButton("TeamESPToggle", "Team ESP", UDim2.new(0, 5, 0, 135), toggleTeamESP)
+            
+            addLabel("Show Player Names", 190)
+            createToggleButton("NameToggle", "Names", UDim2.new(0, 5, 0, 225), toggleNames)
+            
+            addLabel("Show Health Bars", 280)
+            createToggleButton("HealthToggle", "Health", UDim2.new(0, 5, 0, 315), toggleHealth)
+            
+            addLabel("Show Player Types (Bomber, Gladiator, etc.)", 370)
+            createToggleButton("TypeToggle", "Type", UDim2.new(0, 5, 0, 410), toggleType)
+        elseif name == "Combat" then
+            ContentContainer.Visible = true
+            for _, child in pairs(ContentContainer:GetChildren()) do
+                if not child:IsA("UIListLayout") then child:Destroy() end
+            end
+            
+            local function addLabel(text, pos)
+                local lbl = Instance.new("TextLabel")
+                lbl.Size = UDim2.new(1, -10, 0, 30)
+                lbl.Position = UDim2.new(0, 5, 0, pos)
+                lbl.BackgroundTransparency = 1
+                lbl.Text = text
+                lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+                lbl.Font = Enum.Font.GothamBold
+                lbl.TextSize = 16
+                lbl.TextXAlignment = Enum.TextXAlignment.Left
+                lbl.TextWrapped = true
+                lbl.Parent = ContentContainer
+            end
+            
+            -- Title with checkbox
+            local TitleFrame = Instance.new("Frame")
+            TitleFrame.Size = UDim2.new(1, -10, 0, 30)
+            TitleFrame.Position = UDim2.new(0, 5, 0, 5)
+            TitleFrame.BackgroundTransparency = 1
+            TitleFrame.Parent = ContentContainer
+            
+            local TitleLabel = Instance.new("TextLabel")
+            TitleLabel.Size = UDim2.new(0, 150, 1, 0)
+            TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+            TitleLabel.BackgroundTransparency = 1
+            TitleLabel.Text = "Hitbox Expander"
+            TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TitleLabel.Font = Enum.Font.GothamBold
+            TitleLabel.TextSize = 16
+            TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            TitleLabel.Parent = TitleFrame
+            
+            -- Checkbox button
+            local CheckboxButton = Instance.new("TextButton")
+            CheckboxButton.Name = "HitboxToggle"
+            CheckboxButton.Size = UDim2.new(0, 80, 0, 30)
+            CheckboxButton.Position = UDim2.new(0, 160, 0, 0)
+            CheckboxButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            CheckboxButton.BorderSizePixel = 2
+            CheckboxButton.BorderColor3 = Color3.fromRGB(100, 100, 100)
+            CheckboxButton.Text = "OFF"
+            CheckboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            CheckboxButton.Font = Enum.Font.GothamBold
+            CheckboxButton.TextSize = 14
+            CheckboxButton.AutoButtonColor = false
+            CheckboxButton.Parent = TitleFrame
+            
+            CheckboxButton.MouseButton1Click:Connect(function()
+                HitboxEnabled = not HitboxEnabled
+                
+                if HitboxEnabled then
+                    CheckboxButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+                    CheckboxButton.Text = "ON"
+                else
+                    CheckboxButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+                    CheckboxButton.Text = "OFF"
+                end
+                
+                toggleHitbox(HitboxEnabled)
+            end)
+            
+            -- Axis selector
+            addLabel("Expand Axes (Click to toggle)", 40)
+            createAxisButton("AxisX", "X", UDim2.new(0, 5, 0, 75), "X", function(enabled)
+                HitboxAxisX = enabled
+                updateHitboxAxis()
+            end)
+            createAxisButton("AxisY", "Y", UDim2.new(0, 75, 0, 75), "Y", function(enabled)
+                HitboxAxisY = enabled
+                updateHitboxAxis()
+            end)
+            createAxisButton("AxisZ", "Z", UDim2.new(0, 145, 0, 75), "Z", function(enabled)
+                HitboxAxisZ = enabled
+                updateHitboxAxis()
+            end)
+            
+            -- Axis info labels
+            local AxisInfo = Instance.new("TextLabel")
+            AxisInfo.Size = UDim2.new(1, -10, 0, 40)
+            AxisInfo.Position = UDim2.new(0, 5, 0, 110)
+            AxisInfo.BackgroundTransparency = 1
+            AxisInfo.Text = "X = Width (Left/Right)\nY = Height (Up/Down)\nZ = Depth (Forward/Back)"
+            AxisInfo.TextColor3 = Color3.fromRGB(200, 200, 200)
+            AxisInfo.Font = Enum.Font.Gotham
+            AxisInfo.TextSize = 12
+            AxisInfo.TextXAlignment = Enum.TextXAlignment.Left
+            AxisInfo.TextYAlignment = Enum.TextYAlignment.Top
+            AxisInfo.Parent = ContentContainer
+            
+            addLabel("Hitbox Size", 160)
+            createSlider("HitboxSlider", "Adjust Hitbox Size", UDim2.new(0, 5, 0, 160), 0.5, 20.0, 1.0, updateHitboxSize)
+            
+            addLabel("Hitbox Transparency", 300)
+            createSlider("TransparencySlider", "Adjust Transparency (0 = Invisible)", UDim2.new(0, 5, 0, 300), 0.0, 1.0, 0.7, updateHitboxTransparency)
+        end
+        
+        TweenService:Create(Button, TweenInfo.new(0.1), {Size = UDim2.new(1, -2, 0, 48)}):Play()
+        task.wait(0.1)
+        TweenService:Create(Button, TweenInfo.new(0.1), {Size = UDim2.new(1, 4, 0, 50)}):Play()
+    end)
+end
+
+-- Create sidebar buttons
+createSidebarButton("Combat", 1, Color3.fromRGB(180, 150, 90), Color3.fromRGB(140, 110, 60), "rbxassetid://70647313621056", Vector2.new(0, 0), Vector2.new(256, 256))
+createSidebarButton("Visual", 2, Color3.fromRGB(70, 75, 95), Color3.fromRGB(50, 55, 70), "rbxassetid://86137320", Vector2.new(0, 0), Vector2.new(256, 256))
+createSidebarButton("Player", 3, Color3.fromRGB(80, 130, 150), Color3.fromRGB(60, 100, 120), "rbxassetid://98724162674582", Vector2.new(0, 0), Vector2.new(256, 256))
+createSidebarButton("Untp", 4, Color3.fromRGB(100, 100, 110), Color3.fromRGB(70, 70, 80), "rbxassetid://108296665911404", Vector2.new(0, 0), Vector2.new(256, 256))
+createSidebarButton("Settings", 5, Color3.fromRGB(100, 100, 110), Color3.fromRGB(70, 70, 80), "rbxassetid://18801194979", Vector2.new(0, 0), Vector2.new(256, 256))
+
+-- Close button
+CloseButton.MouseEnter:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(220, 70, 70)}):Play()
+end)
+
+CloseButton.MouseLeave:Connect(function()
+    TweenService:Create(CloseButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play()
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    if ESPEnabled then toggleESP(false) end
+    ScreenGui:Destroy()
+end)
+
+-- Draggable
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+print("UI loaded successfully!")
