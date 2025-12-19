@@ -1,3 +1,5 @@
+--yea i love vibe coding
+-- dont skid while im ai coding
 -- Modern Shop Style UI Script with ESP Features
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -1129,5 +1131,6 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
         update(input)
     end
 end)
+
 
 print("UI loaded successfully!")
